@@ -1,0 +1,21 @@
+#!/usr/bin/with-contenv bash
+
+ulimit -n 1048576
+
+until [ -e /var/run/avahi-daemon/socket ]; do
+  sleep 1s
+done
+
+LIBRESPOT_PIPE="/music/librespot-java"
+LIBRESPOT_METADATA_PIPE="$LIBRESPOT_PIPE.metadata"
+
+if [ -p "$LIBRESPOT_PIPE" ]; then
+  rm "$LIBRESPOT_PIPE"
+fi
+
+if [ -p "$LIBRESPOT_METADATA_PIPE" ]; then
+  rm "$LIBRESPOT_METADATA_PIPE"
+fi
+
+mkfifo "$LIBRESPOT_PIPE"
+mkfifo "$LIBRESPOT_METADATA_PIPE"

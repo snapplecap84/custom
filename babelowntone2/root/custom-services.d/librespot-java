@@ -1,0 +1,8 @@
+#!/usr/bin/execlineb -P
+ulimit -n 1048576
+
+until [ -e /var/run/avahi-daemon/socket ]; do
+  sleep 1s
+done
+
+java -jar /opt/librespot-java.jar --conf-file=/config/owntone/librespot-java.toml

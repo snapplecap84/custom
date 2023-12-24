@@ -1,0 +1,24 @@
+name: HomePod Connect
+version: 0.1
+slug: homepod_connect_g8
+description: Play Spotify music on your HomePods through Spotify Connect
+arch:
+  - aarch64
+  - amd64
+map:
+  - config:rw
+  - media:rw
+host_network: true
+host_dbus: false
+host_ipc: false
+hassio_api: false
+auth_api: false
+hassio_role: "default"
+audio: true
+init: false
+startup: application
+boot: auto
+webui: http://[HOST]:[PORT:3689]
+stage: experimental
+url: https://github.com/snapplecap84/homeassistant
+homeassistant: "0.110"

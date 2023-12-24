@@ -1,0 +1,84 @@
+#!/usr/bin/with-contenv bashio
+# shellcheck shell=bash
+
+# make our folders
+mkdir -p \
+    /var/run/dbus \
+    /run/dbus \
+    /config/owntone/dbase_and_logs \
+    /daapd-pidfolder
+
+
+if [[ -e /var/run/dbus.pid ]]; then
+    rm -f /var/run/dbus.pid
+fi
+
+if [[ -e /run/dbus/dbus.pid ]]; then
+    rm -f /run/dbus/dbus.pid
+fi
+
+dbus-uuidgen --ensure
+sleep 1
+
+# configure defaults copy of conf
+if [[ ! -e "/defaults/owntone.conf" ]]; then
+cp /etc/owntone.conf.orig /defaults/owntone.conf
+sed -i \
+    -e '/cache_path\ =/ s/# *//' \
+    -e '/db_path\ =/ s/# *//' \
+    -e s#ipv6\ =\ yes#ipv6\ =\ no#g \
+    -e s#My\ Music\ on\ %h#LS.IO\ Music#g \
+    -e s#/srv/music#/music#g \
+    -e 's/\(uid.*=\).*/\1 \"abc\"/g' \
+    -e s#/var/cache/owntone/cache.db#/config/owntone/dbase_and_logs/cache.db#g \
+    -e s#/var/cache/owntone/songs3.db#/config/owntone/dbase_and_logs/songs3.db#g \
+    -e s#/var/log/owntone.log#/config/owntone/dbase_and_logs/owntone.log#g \
+    /defaults/owntone.conf
+fi
+
+# symlink conf to /conf
+if [[ ! -f /config/owntone/owntone.conf ]]; then
+    cp /defaults/owntone.conf /config/owntone/owntone.conf
+fi
+
+if [[ ! -L /etc/owntone.conf && -f /etc/owntone.conf ]]; then
+    rm /etc/owntone.conf
+fi
+
+if [[ ! -L /etc/owntone.conf ]]; then
+    ln -s /config/owntone/owntone.conf /etc/owntone.conf
+fi
+
+if [[ ! -f /config/owntone/librespot-java.toml ]]; then
+    cp /defaults/librespot-java.toml /config/owntone/librespot-java.toml
+fi
+
+# Set cache true or false
+if $(bashio::config 'librespot_java_cache'); then
+    sed -i '/\[cache\]/,/^\tenabled = .*$/ s/^\tenabled = .*$/\tenabled = true/' /config/owntone/librespot-java.toml
+else
+    sed -i '/\[cache\]/,/^\tenabled = .*$/ s/^\tenabled = .*$/\tenabled = false/' /config/owntone/librespot-java.toml
+fi
+
+# permissions
+lsiown -R abc:abc \
+    /app \
+    /config/owntone \
+    /daapd-pidfolder
+
+# Set cache true or false
+if $(bashio::config 'airplay_pipe'); then
+    LINE='airplay "'$(bashio::config 'airplay_pipe_name')'" { exclude = true } # Exclude airplay_pipe device from owntone device list'
+    FILE='/config/owntone/owntone.conf'
+    sed -i '/{ exclude = true } # Exclude airplay_pipe device from owntone device list/d' $FILE
+    grep -qF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"    
+fi
+
+# configure defaults copy of conf
+#if [[ ! -e "/defaults/shairport-sync.conf" ]]; then
+ #   cp /etc/shairport-sync.conf.sample /defaults/shairport-sync.conf
+#sed -i \
+#    -e   's_//\tname = "/tmp/shairport-sync-audio"; // this is the default_//\tname = "/music/librespot-java"; // this is the default _g'  \
+#	-e   's#//\tpipe_name = "/tmp/shairport-sync-metadata";#//\tpipe_name = "/music/librespot-java.metadata";#g' \
+#     /defaults/shairport-sync.conf
+#fi     
